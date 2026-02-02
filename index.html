@@ -229,17 +229,32 @@
         29: "veintinueve",
       };
 
-      // Nueva función de voz usando la API nativa del navegador (Gratis y sin Key)
+      // Función de voz mejorada
       function speakText(text) {
         if (!text || isSpeaking) return;
 
-        // Cancelar cualquier discurso previo
         window.speechSynthesis.cancel();
 
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "es-ES"; // Idioma español
-        utterance.rate = 0.9; // Un poco más lento para niños
-        utterance.pitch = 1.1; // Tono ligeramente más amigable
+
+        // Buscar una mejor voz (las de Google o Microsoft suelen sonar mejor)
+        const voices = window.speechSynthesis.getVoices();
+        const preferredVoice =
+          voices.find(
+            (v) =>
+              v.lang.startsWith("es") &&
+              (v.name.includes("Google") ||
+                v.name.includes("Natural") ||
+                v.name.includes("Microsoft"))
+          ) ||
+          voices.find((v) => v.lang.startsWith("es")) ||
+          voices[0];
+
+        if (preferredVoice) utterance.voice = preferredVoice;
+
+        utterance.lang = "es-ES";
+        utterance.rate = 0.95; // Velocidad natural
+        utterance.pitch = 1.0; // Tono normal (menos robótico que 1.1)
 
         const trigger = document.getElementById("voice-trigger");
 
@@ -260,6 +275,11 @@
 
         window.speechSynthesis.speak(utterance);
       }
+
+      // Asegurar que las voces estén cargadas (algunos navegadores las cargan asíncronamente)
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
 
       function startGame() {
         document.getElementById("start-screen").classList.add("hidden");
@@ -290,12 +310,10 @@
         if (levelInfo.type === "names") setupNames();
         if (levelInfo.type === "problems") setupProblems();
 
-        // Configurar botón de voz
         document.getElementById("voice-trigger").onclick = () =>
           speakText(currentQuestionText);
 
-        // Auto-lectura (algunos navegadores requieren interacción previa del usuario)
-        setTimeout(() => speakText(currentQuestionText), 500);
+        setTimeout(() => speakText(currentQuestionText), 600);
       }
 
       // --- NIVEL 1: Series ---
@@ -491,7 +509,7 @@
           feedback.innerText = "❌ ¡Inténtalo de nuevo!";
           feedback.className =
             "mt-4 h-12 text-center font-bold text-xl text-red-400 transition-all";
-          speakText("No te rindas, intenta otra vez.");
+          speakText("Intenta otra vez.");
           setTimeout(() => {
             feedback.style.opacity = "0";
           }, 1500);
